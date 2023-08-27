@@ -1,0 +1,41 @@
+name: Documentation Generation
+
+on:
+  push:
+    tags-ignore:
+      # ignore all tags
+      - '**'
+    branches:
+      # run for all branches
+      - '**'
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-22.04
+    name: Generate Documentation
+    env:
+      TEMP_README: "__temp_readme.md"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Prepare markdown file
+        run: |
+          sed '/DOCGEN_IGNORE_START/,/DOCGEN_IGNORE_END/d' README.md > "$TEMP_README"
+      - name: Generate vimdoc
+        uses: kdheepak/panvimdoc@v3.0.6
+        with:
+          vimdoc: projector-neotest
+          pandoc: "${{ env.TEMP_README }}"
+          toc: true
+          description: "nvim-projector neotest output"
+          treesitter: true
+          ignorerawblocks: true
+          docmappingprojectname: false
+      - name: Commit the Generated Help
+        uses: EndBug/add-and-commit@v9
+        if: github.event_name == 'push'
+        with:
+          add: doc/projector-neotest.txt
+          author_name: Github Actions
+          author_email: actions@github.com
+          message: "[docgen] Update doc/projector-neotest.txt"
+          pull: --rebase --autostash
